@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>My Work Tracker</title>
+<link rel="icon" href="favicon.png">
+<style>
+/* Same family as the GEMS dashboards: light, Apple-style neutrals, GEMS navy + cyan. */
+:root {
+  --navy: #041E42; --cyan: #00A3E0; --cyan-ink: #0077A8; --tint: #E8F6FC;
+  --bg: #FFFFFF; --soft: #F5F5F7; --line: #E5E5EA; --line-2: #D2D2D7;
+  --ink: #1D1D1F; --ink-2: #424245; --muted: #6E6E73; --faint: #A1A1A6;
+  --ok: #1E8E5A; --warn: #B7791F; --bad: #C4302B; --radius: 16px;
+  color-scheme: light;
+}
+[hidden] { display: none !important; }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--soft); color: var(--ink); }
+body { font: 15px/1.47 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; letter-spacing: -0.01em; }
+button, input, select { font: inherit; color: inherit; letter-spacing: inherit; }
+:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; border-radius: 6px; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 16px; }
+@media (min-width: 900px) { .wrap { padding-inline: 32px; } }
+
+/* sign in */
+#gate { min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; background: linear-gradient(180deg, #fff 0%, var(--soft) 100%); }
+.signin { width: 100%; max-width: 360px; display: grid; gap: 20px; text-align: center; }
+.signin img { width: 44px; height: 44px; justify-self: center; }
+.signin h1 { font-size: 34px; line-height: 1.1; font-weight: 600; letter-spacing: -0.03em; margin: 0; }
+.signin p { margin: -8px 0 0; color: var(--muted); }
+.signin input[type=password] { width: 100%; font-size: 17px; border: 1px solid var(--line-2); border-radius: 12px; padding: 14px 16px; background: #fff; outline: none; }
+.signin input[type=password]:focus { border-color: var(--cyan); }
+.signin label { display: flex; gap: 8px; justify-content: center; align-items: center; color: var(--muted); font-size: 14px; }
+.btn { border: 0; border-radius: 980px; padding: 12px 22px; background: var(--navy); color: #fff; font-weight: 600; cursor: pointer; }
+.btn:disabled { opacity: .5; }
+.err { color: var(--bad); font-size: 14px; min-height: 20px; }
+
+/* top bar */
+header { position: sticky; top: 0; z-index: 5; background: rgba(255,255,255,.86); backdrop-filter: saturate(180%) blur(18px); border-bottom: 1px solid var(--line); }
+.bar { display: flex; align-items: center; gap: 16px; height: 56px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 600; color: var(--navy); white-space: nowrap; }
+.brand img { width: 26px; height: 26px; }
+nav { display: flex; gap: 4px; margin-left: auto; overflow-x: auto; scrollbar-width: none; }
+nav button { border: 0; background: none; padding: 7px 14px; border-radius: 980px; color: var(--ink-2); cursor: pointer; white-space: nowrap; }
+nav button[aria-selected=true] { background: var(--navy); color: #fff; }
+.lock { border: 0; background: none; color: var(--muted); cursor: pointer; padding: 6px; }
+@media (max-width: 560px) { .brand span { display: none; } .bar { gap: 6px; } nav button { padding: 7px 10px; } .lock { font-size: 13px; padding: 4px; } }
+
+main { padding: 28px 0 64px; }
+h2 { font-size: 30px; font-weight: 600; letter-spacing: -0.025em; margin: 0 0 4px; }
+.sub { color: var(--muted); margin: 0 0 24px; }
+h3 { font-size: 17px; font-weight: 600; margin: 0 0 14px; }
+.grid { display: grid; gap: 16px; }
+.kpis { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 780px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
+.two { grid-template-columns: 1.25fr 1fr; align-items: start; }
+@media (max-width: 860px) { .two { grid-template-columns: 1fr; } }
+.card { background: #fff; border-radius: var(--radius); padding: 20px; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+.kpi .v { font-size: 34px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.1; color: var(--navy); font-variant-numeric: tabular-nums; }
+.kpi .l { color: var(--muted); font-size: 13px; margin-top: 4px; }
+.mt { margin-top: 16px; }
+
+/* timeline */
+.tl { display: grid; gap: 2px; }
+.ev { display: grid; grid-template-columns: 92px 4px 1fr; gap: 12px; align-items: center; padding: 9px 4px; border-radius: 10px; }
+.ev .t { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.ev .dot { width: 4px; height: 100%; min-height: 28px; border-radius: 4px; }
+.ev .n { font-weight: 500; }
+.ev .c { font-size: 12px; color: var(--muted); }
+.ev.now { background: var(--tint); }
+.ev.past .n { color: var(--muted); }
+.empty { color: var(--muted); padding: 8px 0; }
+
+/* tasks */
+.chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.chip { border: 1px solid var(--line-2); background: #fff; border-radius: 980px; padding: 6px 14px; cursor: pointer; font-size: 14px; }
+.chip[aria-pressed=true] { background: var(--navy); border-color: var(--navy); color: #fff; }
+.task { display: grid; grid-template-columns: 26px 1fr auto; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); align-items: start; }
+.task:first-of-type { border-top: 0; }
+.task input { width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--navy); cursor: pointer; }
+.task .tt { font-weight: 500; }
+.task.done .tt { text-decoration: line-through; color: var(--faint); }
+.task .nt { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.task .rm { border: 0; background: none; color: var(--faint); cursor: pointer; font-size: 13px; padding: 0 0 0 8px; }
+.pill { font-size: 12px; padding: 2px 9px; border-radius: 980px; white-space: nowrap; font-weight: 500; }
+.p-open { background: var(--tint); color: var(--cyan-ink); }
+.p-wait { background: #FDF3E1; color: var(--warn); }
+.p-done { background: #E7F5EE; color: var(--ok); }
+.p-late { background: #FBEAEA; color: var(--bad); }
+.side { display: grid; justify-items: end; gap: 4px; }
+.due { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.add { display: grid; grid-template-columns: 1fr 170px 140px auto; gap: 8px; }
+@media (max-width: 700px) { .add { grid-template-columns: 1fr 1fr; } .add input[type=text] { grid-column: 1 / -1; } }
+.add input, .add select { border: 1px solid var(--line-2); border-radius: 10px; padding: 9px 12px; background: #fff; min-width: 0; }
+
+/* time */
+.weeknav { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.weeknav button { border: 1px solid var(--line-2); background: #fff; border-radius: 980px; width: 34px; height: 34px; cursor: pointer; }
+.weeknav b { font-weight: 600; }
+.days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; align-items: end; height: 220px; padding-top: 10px; }
+.day { display: grid; grid-template-rows: 1fr auto auto; height: 100%; gap: 6px; text-align: center; }
+.stack { display: flex; flex-direction: column-reverse; justify-content: flex-start; border-radius: 8px; overflow: hidden; background: var(--soft); }
+.stack i { display: block; }
+.day .d { font-size: 12px; color: var(--muted); }
+.day .h { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.legend { display: grid; gap: 10px; }
+.lg { display: grid; grid-template-columns: 12px 1fr auto; gap: 10px; align-items: center; font-size: 14px; }
+.lg .sw { width: 12px; height: 12px; border-radius: 4px; }
+.lg .hv { font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.lg .track { grid-column: 2 / -1; height: 6px; background: var(--soft); border-radius: 6px; overflow: hidden; margin-top: -4px; }
+.lg .track i { display: block; height: 100%; border-radius: 6px; }
+.trend { display: grid; gap: 10px; }
+.tr { display: grid; grid-template-columns: 92px 1fr 52px; gap: 10px; align-items: center; font-size: 14px; }
+.tr .bar2 { display: flex; height: 14px; border-radius: 6px; overflow: hidden; background: var(--soft); }
+.tr .n { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.note { font-size: 13px; color: var(--muted); margin-top: 12px; }
+
+/* gr8 */
+.hero { background: linear-gradient(135deg, var(--navy), #0B3A75); color: #fff; }
+.hero p { margin: 6px 0 0; color: rgba(255,255,255,.82); max-width: 760px; }
+.hero .who { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 6px; }
+.hero .who span { background: rgba(255,255,255,.12); padding: 3px 10px; border-radius: 980px; font-size: 13px; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; }
+.steps li { display: grid; grid-template-columns: 64px 14px 1fr; gap: 12px; padding-bottom: 14px; position: relative; }
+.steps .sd { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.steps .k { width: 10px; height: 10px; border-radius: 50%; background: var(--cyan); margin-top: 5px; position: relative; }
+.steps li:not(:last-child) .k::after { content: ""; position: absolute; left: 4px; top: 12px; width: 2px; height: calc(100% + 18px); background: var(--line); }
+footer { color: var(--faint); font-size: 12px; text-align: center; padding: 24px 0 40px; }
+
+.topics { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.topic { display: grid; gap: 8px; align-content: start; border-top: 4px solid var(--c); }
+.topic .hd { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.topic h3 { margin: 0; }
+.topic p { margin: 0; color: var(--ink-2); font-size: 14px; }
+.topic .meta { color: var(--muted); font-size: 13px; }
+.tag { font-size: 12px; color: var(--muted); }
+.tag i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: var(--c); }
+.sec { margin-top: 40px; }
+.foot2 { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+.link { border: 0; background: none; color: var(--cyan-ink); cursor: pointer; padding: 0; font-size: 14px; }
+</style>
+</head>
+<body>
+<div id="gate">
+  <form class="signin" id="f">
+    <img src="logo.png" alt="" onerror="this.src='favicon.png'">
+    <h1>My work</h1>
+    <p>Personal tracker. Enter your passphrase.</p>
+    <input type="password" id="pw" autocomplete="current-password" placeholder="Passphrase" required>
+    <label><input type="checkbox" id="rem" checked> Keep me signed in on this device</label>
+    <button class="btn" id="go">Open</button>
+    <div class="err" id="err"></div>
+  </form>
+</div>
+
+<div id="app" hidden>
+  <header><div class="wrap bar">
+    <div class="brand"><img src="favicon.png" alt=""><span>My Work</span></div>
+    <button class="lock" id="lock" title="Lock" style="margin-left:auto">Lock</button>
+  </div></header>
+  <main class="wrap">
+    <h2>What I've been working on</h2><p class="sub" id="since"></p>
+    <div class="topics" id="topics"></div>
+    <div class="sec"><h2>Open + pending</h2><p class="sub">Tick to close. Add anything new below.</p>
+      <div class="card" id="list"></div>
+      <div class="card mt"><form class="add" id="addf">
+        <input type="text" id="at" placeholder="Add a task…" required>
+        <select id="as"></select>
+        <input type="date" id="ad">
+        <button class="btn">Add</button>
+      </form></div>
+    </div>
+  </main>
+  <footer id="foot"></footer>
+</div>
+
+<script>
+const COL = { gr8: "#E0662B", crm: "#1E8E5A", exotel: "#00A3E0", wa: "#25A366", sales: "#041E42", agency: "#7A5AF8", dash: "#5B6B7F", tech: "#9AA4B2", hire: "#B7791F" };
+const STORE = "me-tracker-v1", KEY = "me-tracker-key";
+let D, S = { done: {}, added: [] }, showDone = false;
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }, del(k) { try { localStorage.removeItem(k); } catch (e) {} } };
+
+async function unlock(pass, rawKey) {
+  const enc = await (await fetch("data.enc", { cache: "no-store" })).json();
+  let key;
+  if (rawKey) key = await crypto.subtle.importKey("raw", b64(rawKey), "AES-GCM", true, ["decrypt"]);
+  else {
+    const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(pass), "PBKDF2", false, ["deriveKey"]);
+    key = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: b64(enc.salt), iterations: enc.iter, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, true, ["decrypt"]);
+  }
+  const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(enc.iv) }, key, b64(enc.ct));
+  const json = await new Response(new Blob([plain]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
+  return { data: JSON.parse(json), key };
+}
+$("#f").onsubmit = async e => {
+  e.preventDefault(); $("#go").disabled = true; $("#err").textContent = "";
+  try {
+    const { data, key } = await unlock($("#pw").value);
+    if ($("#rem").checked) { const raw = new Uint8Array(await crypto.subtle.exportKey("raw", key)); store.set(KEY, btoa(String.fromCharCode(...raw))); }
+    start(data);
+  } catch (err) { $("#err").textContent = "That passphrase didn't work."; }
+  $("#go").disabled = false;
+};
+$("#lock").onclick = () => { store.del(KEY); location.reload(); };
+(async () => { const k = store.get(KEY); if (k) try { start((await unlock(null, k)).data); } catch (e) { store.del(KEY); } })();
+
+const pad = n => String(n).padStart(2, "0");
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const today = () => ymd(new Date());
+const mins = t => +t.slice(0, 2) * 60 + +t.slice(3, 5);
+const fmtD = s => new Date(s + "T00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+const hrs = m => m < 60 ? m + "m" : (m / 60).toFixed(1).replace(/\.0$/, "") + "h";
+const save = () => store.set(STORE, JSON.stringify(S));
+const tname = k => (D.topics.find(t => t[0] === k) || [k, "Other"])[1];
+
+function start(data) {
+  D = data;
+  try { S = Object.assign({ done: {}, added: [] }, JSON.parse(store.get(STORE) || "{}")); } catch (e) {}
+  $("#gate").hidden = true; $("#app").hidden = false;
+  $("#as").innerHTML = D.topics.map(([k, n]) => `<option value="${k}">${esc(n)}</option>`).join("");
+  $("#ad").value = today();
+  $("#addf").onsubmit = e => {
+    e.preventDefault();
+    S.added.push({ id: "u" + Date.now(), title: $("#at").value.trim(), stream: $("#as").value, status: "open", due: $("#ad").value, note: "", mine: true });
+    save(); render(); $("#at").value = "";
+  };
+  $("#foot").textContent = `Seeded from your Outlook mail + calendar on ${fmtD(D.asof.slice(0, 10))}. Ticks and new tasks are saved on this device.`;
+  render();
+}
+function tasks() {
+  return D.tasks.map(([id, title, stream, status, due, note]) => ({ id, title, stream, status, due, note })).concat(S.added).map(t => {
+    const done = S.done[t.id] ?? (t.status === "done");
+    return { ...t, st: done ? "done" : (t.status === "done" ? "open" : t.status), late: !done && t.due && t.due < today() };
+  });
+}
+const pill = t => t.st === "done" ? `<span class="pill p-done">Done</span>` : t.late ? `<span class="pill p-late">Overdue</span>` : t.st === "wait" ? `<span class="pill p-wait">Waiting</span>` : `<span class="pill p-open">To do</span>`;
+function render() {
+  const ts = tasks(), t0 = today();
+  const past = D.events.filter(e => e[0] <= t0);
+  const first = D.events.reduce((a, e) => e[0] < a ? e[0] : a, "9");
+  $("#since").textContent = `Since ${fmtD(first)}, from your mail and calendar.`;
+  const info = D.topics.map(([k, n, sum]) => {
+    const ev = past.filter(e => e[4] === k), m = ev.reduce((a, e) => a + mins(e[2]) - mins(e[1]), 0);
+    const open = ts.filter(t => t.stream === k && t.st !== "done").length, closed = ts.filter(t => t.stream === k && t.st === "done").length;
+    const last = ev.reduce((a, e) => e[0] > a ? e[0] : a, "");
+    return { k, n, sum, m, open, closed, cnt: ev.length, last };
+  }).sort((a, b) => b.open - a.open || b.m - a.m);
+  $("#topics").innerHTML = info.map(x => `<div class="card topic" style="--c:${COL[x.k] || "#A1A1A6"}">
+    <div class="hd"><h3>${esc(x.n)}</h3>${x.open ? `<span class="pill p-open">${x.open} open</span>` : `<span class="pill p-done">Clear</span>`}</div>
+    <p>${esc(x.sum)}</p>
+    <div class="meta">${[x.m ? `${hrs(x.m)} in ${x.cnt} meeting${x.cnt > 1 ? "s" : ""}` : "", x.closed ? `${x.closed} closed` : "", x.last ? `last ${fmtD(x.last)}` : ""].filter(Boolean).join(" · ")}</div>
+  </div>`).join("");
+  const order = { open: 0, wait: 1, done: 2 };
+  const rows = ts.filter(t => showDone || t.st !== "done").sort((a, b) => order[a.st] - order[b.st] || (a.due || "9").localeCompare(b.due || "9"));
+  const nDone = ts.filter(t => t.st === "done").length;
+  $("#list").innerHTML = (rows.length ? rows.map(t => `<div class="task ${t.st === "done" ? "done" : ""}">
+    <input type="checkbox" data-id="${esc(t.id)}" ${t.st === "done" ? "checked" : ""} aria-label="Mark done">
+    <div><div class="tt">${esc(t.title)}</div>${t.note ? `<div class="nt">${esc(t.note)}</div>` : ""}<div class="tag" style="--c:${COL[t.stream] || "#A1A1A6"}"><i></i>${esc(tname(t.stream))}</div></div>
+    <div class="side">${pill(t)}${t.due ? `<span class="due">${t.st === "done" ? "" : "Due "}${fmtD(t.due)}</span>` : ""}${t.mine ? `<button class="rm" data-rm="${esc(t.id)}">Remove</button>` : ""}</div>
+  </div>`).join("") : `<div class="empty">All clear.</div>`) + `<div class="foot2"><span class="tag">${ts.filter(t => t.st !== "done").length} open · ${ts.filter(t => t.st === "wait").length} waiting on others</span><button class="link" id="sd">${showDone ? "Hide" : "Show"} done (${nDone})</button></div>`;
+  $("#sd").onclick = () => { showDone = !showDone; render(); };
+  document.querySelectorAll("input[data-id]").forEach(c => c.onchange = () => { S.done[c.dataset.id] = c.checked; save(); render(); });
+  document.querySelectorAll("[data-rm]").forEach(b => b.onclick = () => { S.added = S.added.filter(t => t.id !== b.dataset.rm); delete S.done[b.dataset.rm]; save(); render(); });
+}
+</script>
+</body>
+</html>
