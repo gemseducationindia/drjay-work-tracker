@@ -266,7 +266,7 @@ function start(data){
    REQ is edited by Claude as requests come in. Comments are stored by COMMENTS_API
    (a Google Apps Script web app: GET returns [{id,name,text,at}], POST {id,name,text}).
    With no COMMENTS_API the comment box is hidden. */
-const COMMENTS_API = "";
+const COMMENTS_API = "https://script.google.com/macros/s/AKfycbyl-tte6MBvc3vtfykolDnhMkbtbs1hx25ygsGiHPDNi2rUENfh3_2khb6bGFVXyf5J/exec";
 const RQS = {new:"New",prog:"In progress",wait:"Waiting",done:"Done"};
 let RF = "", CM = {};
 function initRequests(){
