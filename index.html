@@ -131,6 +131,17 @@ main{padding-block:28px 56px}
 .cm button{font-weight:700;font-size:13px;padding:9px 14px;border:0;border-radius:10px;background:var(--navy);color:#fff;cursor:pointer}
 .cm button:disabled{opacity:.5;cursor:default}
 .cm .hint{font-size:12px;color:var(--muted)}
+.rqbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}.rqbar .rqf{margin:0}
+.addbtn{font-weight:700;font-size:13px;padding:9px 16px;border:0;border-radius:10px;background:var(--navy);color:#fff;cursor:pointer}
+#rqadd{background:var(--soft);border-radius:14px;padding:16px 18px;margin-bottom:16px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#rqadd h4{grid-column:1/-1;margin:0;font-size:14.5px}
+#rqadd label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--muted)}
+#rqadd .full{grid-column:1/-1}
+#rqadd input,#rqadd select,#rqadd textarea{font:inherit;font-size:13px;font-weight:500;border:0;border-radius:10px;background:var(--bg);color:var(--fg);padding:9px 12px}
+#rqadd .act{grid-column:1/-1;display:flex;gap:8px;justify-content:flex-end;align-items:center}
+#rqadd .act .ghost{background:none;color:var(--muted);border:0;font-weight:600;cursor:pointer;font-size:13px}
+#rqadd .msg{flex:1;font-size:12.5px;color:#b42318}
+@media (max-width:560px){#rqadd{grid-template-columns:1fr}}
 .rqf{display:inline-flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
 @media (max-width:1000px){.top{grid-template-columns:1fr}.topics{grid-template-columns:repeat(2,1fr)}.nowlist{grid-template-columns:1fr}}
 @media (max-width:560px){.topics{grid-template-columns:1fr}.pie{grid-template-columns:1fr}.pie .cv{height:200px}.stat b{font-size:24px}.row{grid-template-columns:1fr auto}.row .d{display:none}.head h2{font-size:23px}}
@@ -179,8 +190,18 @@ main{padding-block:28px 56px}
 </section>
 
 <section id="v-requests" hidden>
-  <div class="head"><div><h2>New requests</h2><p>Requests as they come in, newest first. Add a comment on any of them.</p></div><div class="asof" id="rqasof"></div></div>
-  <div class="seg rqf" id="rqseg"><button data-s="" aria-pressed="true">All</button><button data-s="open" aria-pressed="false">Open</button><button data-s="done" aria-pressed="false">Done</button></div>
+  <div class="head"><div><h2>New requests</h2><p>Requests as they come in, newest first. Add a new request or comment on any of them.</p></div><div class="asof" id="rqasof"></div></div>
+  <div class="rqbar"><div class="seg rqf" id="rqseg"><button data-s="" aria-pressed="true">All</button><button data-s="open" aria-pressed="false">Open</button><button data-s="done" aria-pressed="false">Done</button></div>
+    <button class="addbtn" id="rqnew" hidden>+ Add request</button></div>
+  <form id="rqadd" hidden autocomplete="off">
+    <h4>New request</h4>
+    <label class="full">Request<input name="t" required maxlength="200" placeholder="What is needed"></label>
+    <label>From<input name="by" required maxlength="60" placeholder="Who asked"></label>
+    <label>Topic<select name="w"></select></label>
+    <label>Target date<input name="due" type="date"></label>
+    <label>Note<input name="n" maxlength="1000" placeholder="Optional"></label>
+    <div class="act"><span class="msg" id="rqmsg"></span><button type="button" class="ghost" id="rqcancel">Cancel</button><button class="addbtn">Add request</button></div>
+  </form>
   <div id="rqlist"></div>
 </section>
 
@@ -204,6 +225,7 @@ let D, F = {w:"",s:"",q:""};
 const $ = s => document.querySelector(s);
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const today = (t=new Date()) => new Date(t.getTime()+330*60000).toISOString().slice(0,10);
 const fdate = d => new Date(d+"T00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short"});
 
 function show(v){ ["summary","requests","details"].forEach(k=>{ $("#v-"+k).hidden=k!==v; $("#tab-"+k).setAttribute("aria-selected",k===v); });
@@ -258,18 +280,36 @@ function start(data){
    With no COMMENTS_API the comment box is hidden. */
 const COMMENTS_API = "https://script.google.com/macros/s/AKfycbyl-tte6MBvc3vtfykolDnhMkbtbs1hx25ygsGiHPDNi2rUENfh3_2khb6bGFVXyf5J/exec";
 const RQS = {new:"New",prog:"In progress",wait:"Waiting",done:"Done"};
-let RF = "", CM = {};
+let RF = "", CM = {}, SQ = [];
+const stKey = v => { v=String(v||"").toLowerCase(); return v.startsWith("done")?"done":v.startsWith("wait")?"wait":v.startsWith("in")||v.startsWith("prog")?"prog":"new"; };
+const allReq = () => REQ.concat(SQ);
 function initRequests(){
-  $("#rqasof").textContent = REQ.length ? "Last request "+fdate(REQ.map(r=>r.d).sort().pop()) : "";
+  const f=$("#rqadd");
+  f.w.innerHTML=`<option value="">Other</option>`+D.W.map(w=>`<option value="${w[0]}">${esc(w[1])}</option>`).join("");
+  if(COMMENTS_API) $("#rqnew").hidden=false;
+  $("#rqnew").onclick=()=>{f.hidden=false;$("#rqnew").hidden=true;f.t.focus();};
+  $("#rqcancel").onclick=()=>{f.reset();f.hidden=true;$("#rqnew").hidden=false;$("#rqmsg").textContent="";};
+  f.onsubmit=async e=>{ e.preventDefault(); const b=f.querySelector(".act .addbtn"); const t=f.t.value.trim(), by=f.by.value.trim(); if(!t||!by) return;
+    b.disabled=true; $("#rqmsg").textContent="";
+    try{ const r=await fetch(COMMENTS_API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({kind:"request",t,by,w:f.w.value,due:f.due.value?fdate(f.due.value):"",n:f.n.value.trim()})});
+      const j=await r.json(); if(!j.ok) throw 0;
+      SQ.push({id:j.id,d:today(),t,by,w:f.w.value,due:f.due.value?fdate(f.due.value):"",n:f.n.value.trim(),s:"new"});
+      f.reset(); f.hidden=true; $("#rqnew").hidden=false; renderReq(); loadComments();
+    }catch(_){ $("#rqmsg").textContent="Could not save. Please try again."; }
+    b.disabled=false; };
   $("#rqseg").querySelectorAll("button").forEach(b=>b.onclick=()=>{RF=b.dataset.s; $("#rqseg").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b)); renderReq();});
   renderReq(); loadComments();
 }
 async function loadComments(){
   if(!COMMENTS_API) return;
-  try{ const r=await fetch(COMMENTS_API+"?t="+Date.now()); const a=await r.json(); CM={}; a.forEach(c=>(CM[c.id]=CM[c.id]||[]).push(c)); renderReq(); }catch(e){}
+  try{ const r=await fetch(COMMENTS_API+"?t="+Date.now()); const j=await r.json();
+    const a=Array.isArray(j)?j:(j.comments||[]); CM={}; a.forEach(c=>(CM[c.id]=CM[c.id]||[]).push(c));
+    if(!Array.isArray(j)) SQ=(j.requests||[]).map(q=>({id:q.id,d:today(new Date(q.at)),t:q.t,by:q.by,w:q.w,due:q.due,n:q.n,s:stKey(q.status)}));
+    renderReq(); }catch(e){}
 }
 function renderReq(){
-  const L=REQ.filter(r=>!RF||(RF==="done"?r.s==="done":r.s!=="done")).sort((a,b)=>b.d.localeCompare(a.d));
+  const A=allReq(); $("#rqasof").textContent = A.length ? "Last request "+fdate(A.map(r=>r.d).sort().pop()) : "";
+  const L=A.filter(r=>!RF||(RF==="done"?r.s==="done":r.s!=="done")).sort((a,b)=>b.d.localeCompare(a.d));
   let nm=""; try{ nm=localStorage.getItem("rqname")||""; }catch(e){}
   $("#rqlist").innerHTML = L.length ? L.map(r=>{
     const c=CM[r.id]||[];
